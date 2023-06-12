@@ -78,6 +78,10 @@ impl ParamValue<'static> for NaiveDate {
     }
 }
 
+pub trait ParamType<'a> {
+    fn as_pairs(&self) -> Vec<(Cow<'a, str>, Cow<'a, str>)>;
+}
+
 #[derive(Default)]
 pub struct QueryParams<'a> {
     params: Vec<(Cow<'a, str>, Cow<'a, str>)>,
@@ -131,6 +135,26 @@ impl<'a> QueryParams<'a> {
     {
         if let Some(iter) = iter {
             self.extend(iter);
+        }
+        self
+    }
+
+    pub fn extend_type<'b, T>(&mut self, obj: T) -> &mut Self
+    where
+        T: ParamType<'b>,
+        'b: 'a,
+    {
+        self.extend(obj.as_pairs().into_iter());
+        self
+    }
+
+    pub fn extend_type_opt<'b, T>(&mut self, obj: Option<T>) -> &mut Self
+    where
+        T: ParamType<'b>,
+        'b: 'a,
+    {
+        if let Some(obj) = obj {
+            self.extend_type(obj);
         }
         self
     }

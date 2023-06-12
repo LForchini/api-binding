@@ -1,9 +1,10 @@
 use std::borrow::Cow;
 
+use async_trait::async_trait;
 use http::{header, Method, Request};
 use serde::de::DeserializeOwned;
 
-use crate::{query, ApiError, BodyError, Client, Query, QueryParams};
+use crate::{query, ApiError, AsyncClient, AsyncQuery, BodyError, Client, Query, QueryParams};
 
 pub trait Endpoint {
     /// HTTP Method to hit the endpoint with
@@ -43,6 +44,41 @@ where
             (req, Vec::new())
         };
         let rsp = client.rest(req, data)?;
+        let status = rsp.status();
+        let v = if let Ok(v) = serde_json::from_slice(rsp.body()) {
+            v
+        } else {
+            return Err(ApiError::internal_error(status, rsp.body()));
+        };
+        if !status.is_success() {
+            return Err(ApiError::server_error(v));
+        }
+
+        serde_json::from_value::<T>(v).map_err(ApiError::data_type::<T>)
+    }
+}
+
+#[async_trait]
+impl<E, T, C> AsyncQuery<T, C> for E
+where
+    E: Endpoint + Sync,
+    T: DeserializeOwned + 'static,
+    C: AsyncClient + Sync,
+{
+    async fn query_async(&self, client: &C) -> Result<T, ApiError<C::Error>> {
+        let mut url = client.rest_endpoint(&self.endpoint())?;
+        self.parameters().add_to_url(&mut url);
+
+        let req = Request::builder()
+            .method(self.method())
+            .uri(query::url_to_http_uri(url));
+        let (req, data) = if let Some((mime, data)) = self.body()? {
+            let req = req.header(header::CONTENT_TYPE, mime);
+            (req, data)
+        } else {
+            (req, Vec::new())
+        };
+        let rsp = client.rest_async(req, data).await?;
         let status = rsp.status();
         let v = if let Ok(v) = serde_json::from_slice(rsp.body()) {
             v
