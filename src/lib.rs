@@ -15,6 +15,7 @@ pub use endpoint::Endpoint;
 pub use error::ApiError;
 pub use error::BodyError;
 
+pub use params::ParamType;
 pub use params::ParamValue;
 pub use params::QueryParams;
 
