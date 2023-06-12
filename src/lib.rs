@@ -7,6 +7,7 @@ pub(crate) mod query;
 pub mod client_prelude;
 pub mod endpoint_prelude;
 
+pub use client::AsyncClient;
 pub use client::Client;
 pub use client::RestClient;
 
@@ -19,4 +20,5 @@ pub use params::ParamType;
 pub use params::ParamValue;
 pub use params::QueryParams;
 
+pub use query::AsyncQuery;
 pub use query::Query;

@@ -1,4 +1,5 @@
 pub use crate::ApiError;
+pub use crate::AsyncClient;
 pub use crate::Client;
 pub use crate::RestClient;
 
